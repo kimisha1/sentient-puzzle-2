@@ -1,0 +1,13 @@
+addEventListener('dragover',e=>{e.preventDefault();});cell.addEventListener('drop',e=>{e.preventDefault();const d=grid.querySelector('.tile.dragging');if(d)swap(d.parentElement,cell);});}}}
+  function makeTile(i){const n=state.size;const t=document.createElement('div');t.className='tile';t.draggable=true;t.dataset.correct=i;const x=(n===1?0:(i%n)/(n-1)*100);const y=(n===1?0:Math.floor(i/n)/(n-1)*100);t.style.backgroundImage='url('+state.imgURL+')';t.style.backgroundSize=(n*100)+'% '+(n*100)+'%';t.style.backgroundPosition=x+'% '+y+'%';t.ondragstart=e=>{t.classList.add('dragging');};t.ondragend=e=>{t.classList.remove('dragging');};return t;}
+  function swap(a,b){if(a===b)return;const ta=a.firstElementChild,tb=b.firstElementChild;if(!ta||!tb)return;a.appendChild(tb);b.appendChild(ta);state.moves++;if(state.moves===1)startTimer();movesEl.textContent=state.moves;check();}
+  function shuffle(start){const n=state.size;const arr=Array.from({length:n*n},(_,i)=>i);do{for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}while(arr.every((v,i)=>v===i));[...grid.children].forEach((c,i)=>{c.innerHTML='';c.appendChild(makeTile(arr[i]));});state.moves=0;movesEl.textContent='0';stopTimer();state.startedAt=null;timeEl.textContent='00:00';if(start)startTimer();}
+  function check(){const ok=[...grid.children].every((c,i)=>parseInt(c.firstElementChild.dataset.correct)===i);if(ok){stopTimer();toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000);}}
+  loadImage(state.imgURL);
+</script>
+</body>
+</html>`;
+}
+</script>
+</body>
+</html>
