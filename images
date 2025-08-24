@@ -1,13 +1,10 @@
-<script>
-  const IMAGES = [
-    "images/dog-01.png",
-    "images/dog-02.png",
-    "images/dog-03.png",
-    "images/dog-04.png",
-    "images/dog-05.png",
-    "images/dog-06.png",
-    "images/dog-07.png",
-    "images/dog-08.png",
-    "images/dog-09.png",
-    "images/dog-10.png"
-  ];
+images/dog-01.png
+images/dog-02.png
+images/dog-03.png
+images/dog-04.png
+images/dog-05.png
+images/dog-06.png
+images/dog-07.png
+images/dog-08.png
+images/dog-09.png
+images/dog-10.png
