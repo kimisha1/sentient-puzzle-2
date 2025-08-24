@@ -1,10 +1,13 @@
-images/dog-01.jpg
-images/dog-02.jpg
-images/dog-03.jpg
-images/dog-04.jpg
-images/dog-05.jpg
-images/dog-06.jpg
-images/dog-07.jpg
-images/dog-08.jpg
-images/dog-09.jpg
-images/dog-10.jpg
+<script>
+  const IMAGES = [
+    "images/dog-01.png",
+    "images/dog-02.png",
+    "images/dog-03.png",
+    "images/dog-04.png",
+    "images/dog-05.png",
+    "images/dog-06.png",
+    "images/dog-07.png",
+    "images/dog-08.png",
+    "images/dog-09.png",
+    "images/dog-10.png"
+  ];
