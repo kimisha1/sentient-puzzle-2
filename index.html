@@ -23,6 +23,7 @@
     .thumb.selected { border-color:#2c7be5; }
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#111; color:#fff; padding:10px 16px; border-radius:999px; opacity:0; transition:.25s; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .warn { font-size:12px; color:#a00; }
   </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
     <aside>
       <div><b>Choose Image</b></div>
       <div id="thumbs" class="thumbs"></div>
+      <div class="warn" id="warn"></div>
       <div style="margin-top:8px;">Moves: <b id="moves">0</b> | Time: <b id="time">00:00</b></div>
     </aside>
   </div>
@@ -54,18 +56,14 @@
 <div id="toast" class="toast">🎉 Puzzle Completed!</div>
 
 <script>
-  const IMAGES = [
-    "images/angry-dog.png",
-    "images/moon-dog.PNG",
-    "images/pc-dog.png",
-    "images/paint-dog.png",
-    "images/love-dog.png",
-    "images/captain-dog.png",
-    "images/chef-dog.png",
-    "images/car-dog.png",
-    "images/dead-dog.png",
-    "images/genie-dog.png"
+  // Filenames (base names only)
+  const BASES = [
+    "angry-dog","moon-dog","pc-dog","paint-dog","love-dog",
+    "captain-dog","chef-dog","car-dog","dead-dog","genie-dog"
   ];
+  // Try these paths/extensions automatically
+  const PATHS = ["images/", ""];
+  const EXTS  = ["png","PNG","jpg","jpeg","JPG","JPEG","webp","WEBP"];
 
   const thumbsBox=document.getElementById('thumbs');
   const grid=document.getElementById('grid');
@@ -75,8 +73,43 @@
   const toast=document.getElementById('toast');
   const shuffleBtn=document.getElementById('shuffleBtn');
   const resetBtn=document.getElementById('resetBtn');
+  const warnEl=document.getElementById('warn');
 
-  let state={size:4,imgURL:IMAGES[0],moves:0,startedAt:null,timer:null};
+  let state={size:4,imgURL:null,moves:0,startedAt:null,timer:null};
+  let IMAGES=[]; // resolved URLs
+
+  function imgExists(url){
+    return new Promise(res=>{
+      const im=new Image();
+      im.onload = ()=>res(true);
+      im.onerror= ()=>res(false);
+      im.src=url+(url.includes('?')?'&':'?')+'v='+(Date.now()%1e7); // bust cache
+    });
+  }
+
+  async function resolveOne(base){
+    for(const p of PATHS){
+      for(const e of EXTS){
+        const url = p+base+"."+e;
+        if(await imgExists(url)) return url;
+      }
+    }
+    return null;
+  }
+
+  async function resolveAll(){
+    const out=[];
+    const missing=[];
+    for(const b of BASES){
+      const u = await resolveOne(b);
+      if(u) out.push(u); else missing.push(b);
+    }
+    if(missing.length){
+      warnEl.textContent = "Missing: "+missing.join(", ");
+      console.warn("Missing images:", missing);
+    }
+    return out;
+  }
 
   function renderThumbs(){
     thumbsBox.innerHTML='';
@@ -88,17 +121,19 @@
       thumbsBox.appendChild(img);
     });
   }
+
   function markSelected(url){
-    [...thumbsBox.querySelectorAll('.thumb')].forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
+    [...thumbsBox.querySelectorAll('.thumb')]
+      .forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
   }
+
   gridSel.onchange=()=>{state.size=parseInt(gridSel.value);build();shuffle();};
   shuffleBtn.onclick=()=>shuffle(true);
   resetBtn.onclick=()=>reset();
 
   function startTimer(){
     state.startedAt=Date.now();
-    if(state.timer)clearInterval(state.
-                                 timer);
+    if(state.timer)clearInterval(state.timer);
     state.timer=setInterval(updateTime,500);
     updateTime();
   }
@@ -117,6 +152,7 @@
   function loadImage(url){
     state.imgURL=url; markSelected(url); reset(); shuffle(true);
   }
+
   function build(){
     const n=state.size;
     grid.style.gridTemplateColumns='repeat('+n+',1fr)';
@@ -135,6 +171,7 @@
       });
     }
   }
+
   function makeTile(i){
     const n=state.size;
     const t=document.createElement('div');
@@ -148,6 +185,7 @@
     t.ondragend = ()=>t.classList.remove('dragging');
     return t;
   }
+
   function swap(a,b){
     if(a===b) return;
     const ta=a.firstElementChild, tb=b.firstElementChild;
@@ -157,6 +195,7 @@
     movesEl.textContent=state.moves;
     check();
   }
+
   function shuffle(start){
     const n=state.size;
     const order=Array.from({length:n*n},(_,i)=>i);
@@ -173,13 +212,25 @@
     stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
     if(start) startTimer();
   }
+
   function check(){
-    const ok=[...grid.children].every((c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i);
+    const ok=[...grid.children].every(
+      (c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i
+    );
     if(ok){ stopTimer(); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
   }
 
-  renderThumbs();
-  loadImage(state.imgURL);
+  // boot
+  (async ()=>{
+    IMAGES = await resolveAll();
+    if(!IMAGES.length){
+      warnEl.textContent = "No images found. Put files in ./images or ./ with names like angry-dog.png (or .jpg/.jpeg/.webp).";
+      return;
+    }
+    state.imgURL = IMAGES[0];
+    renderThumbs();
+    loadImage(state.imgURL);
+  })();
 </script>
 </body>
 </html>
