@@ -4,8 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sentient Puzzle</title>
-  <meta name="description" content="Play Sentient Puzzle online — fun puzzles with preset images.">
-  <meta name="keywords" content="sentient puzzle, puzzle game, online puzzle">
+  <meta name="description" content="Play Sentient Puzzle — fixed set of cute dog puzzles.">
   <style>
     body { margin:0; font-family:sans-serif; background:#f7f7fb; }
     header { background:#fff; padding:14px 18px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
@@ -42,31 +41,34 @@
     <button id="resetBtn">Reset</button>
   </div>
 </header>
+
 <main>
   <div class="wrap">
     <div class="board"><div id="grid" class="grid"></div></div>
     <aside>
       <div><b>Choose Image</b></div>
-      <div class="thumbs">
-        <!-- نمونه تصویر ۱ -->
-        <img class="thumb selected" 
-             data-url="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..." 
-             src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..." 
-             title="Puzzle 1">
-
-        <!-- نمونه تصویر ۲ -->
-        <img class="thumb" 
-             data-url="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..." 
-             src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..." 
-             title="Puzzle 2">
-      </div>
+      <div id="thumbs" class="thumbs"></div>
       <div style="margin-top:8px;">Moves: <b id="moves">0</b> | Time: <b id="time">00:00</b></div>
     </aside>
   </div>
 </main>
 <div id="toast" class="toast">🎉 Puzzle Completed!</div>
+
 <script>
-  const thumbs=document.querySelectorAll('.thumb');
+  const IMAGES = [
+    "images/dog-01.jpg",
+    "images/dog-02.jpg",
+    "images/dog-03.jpg",
+    "images/dog-04.jpg",
+    "images/dog-05.jpg",
+    "images/dog-06.jpg",
+    "images/dog-07.jpg",
+    "images/dog-08.jpg",
+    "images/dog-09.jpg",
+    "images/dog-10.jpg"
+  ];
+
+  const thumbsBox=document.getElementById('thumbs');
   const grid=document.getElementById('grid');
   const gridSel=document.getElementById('gridSize');
   const movesEl=document.getElementById('moves');
@@ -74,24 +76,109 @@
   const toast=document.getElementById('toast');
   const shuffleBtn=document.getElementById('shuffleBtn');
   const resetBtn=document.getElementById('resetBtn');
-  let state={size:4,imgURL:thumbs[0].dataset.url,moves:0,startedAt:null,timer:null};
 
-  function markSelected(url){ thumbs.forEach(t=>t.classList.toggle('selected',t.dataset.url===url)); }
-  thumbs.forEach(t=> t.onclick=()=>loadImage(t.dataset.url));
+  let state={size:4,imgURL:IMAGES[0],moves:0,startedAt:null,timer:null};
+
+  function renderThumbs(){
+    thumbsBox.innerHTML='';
+    IMAGES.forEach((src,i)=>{
+      const img=document.createElement('img');
+      img.className='thumb'+(i===0?' selected':'');
+      img.src=src; img.dataset.url=src; img.title='Puzzle '+(i+1);
+      img.onclick=()=>loadImage(src);
+      thumbsBox.appendChild(img);
+    });
+  }
+  function markSelected(url){
+    [...thumbsBox.querySelectorAll('.thumb')].forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
+  }
   gridSel.onchange=()=>{state.size=parseInt(gridSel.value);build();shuffle();};
   shuffleBtn.onclick=()=>shuffle(true);
   resetBtn.onclick=()=>reset();
 
-  function startTimer(){state.startedAt=Date.now(); if(state.timer)clearInterval(state.timer); state.timer=setInterval(updateTime,500);updateTime();}
-  function stopTimer(){if(state.timer)clearInterval(state.timer);}
-  function updateTime(){if(!state.startedAt)return; const s=Math.floor((Date.now()-state.startedAt)/1000); timeEl.textContent=(String(Math.floor(s/60)).padStart(2,'0'))+':'+(String(s%60).padStart(2,'0'));}
-  function reset(){state.moves=0;movesEl.textContent='0';stopTimer();state.startedAt=null;timeEl.textContent='00:00';build();}
-  function loadImage(url){state.imgURL=url;markSelected(url);reset();shuffle(true);}
-  function build(){const n=state.size;grid.style.gridTemplateColumns='repeat('+n+',1fr)';grid.style.gridTemplateRows='repeat('+n+',1fr)';grid.innerHTML='';for(let i=0;i<n*n;i++){const cell=document.createElement('div');cell.className='cell';grid.appendChild(cell);cell.appendChild(makeTile(i));cell.addEventListener('dragover',e=>{e.preventDefault();});cell.addEventListener('drop',e=>{e.preventDefault();const d=grid.querySelector('.tile.dragging');if(d)swap(d.parentElement,cell);});}}}
-  function makeTile(i){const n=state.size;const t=document.createElement('div');t.className='tile';t.draggable=true;t.dataset.correct=i;const x=(n===1?0:(i%n)/(n-1)*100);const y=(n===1?0:Math.floor(i/n)/(n-1)*100);t.style.backgroundImage='url('+state.imgURL+')';t.style.backgroundSize=(n*100)+'% '+(n*100)+'%';t.style.backgroundPosition=x+'% '+y+'%';t.ondragstart=()=>{t.classList.add('dragging');};t.ondragend=()=>{t.classList.remove('dragging');};return t;}
-  function swap(a,b){if(a===b)return;const ta=a.firstElementChild,tb=b.firstElementChild;if(!ta||!tb)return;a.appendChild(tb);b.appendChild(ta);state.moves++;if(state.moves===1)startTimer();movesEl.textContent=state.moves;check();}
-  function shuffle(start){const n=state.size;const arr=Array.from({length:n*n},(_,i)=>i);do{for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}}while(arr.every((v,i)=>v===i));[...grid.children].forEach((c,i)=>{c.innerHTML='';c.appendChild(makeTile(arr[i]));});state.moves=0;movesEl.textContent='0';stopTimer();state.startedAt=null;timeEl.textContent='00:00';if(start)startTimer();}
-  function check(){const ok=[...grid.children].every((c,i)=>parseInt(c.firstElementChild.dataset.correct)===i);if(ok){stopTimer();toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000);}}
+  function startTimer(){
+    state.startedAt=Date.now();
+    if(state.timer)clearInterval(state.timer);
+    state.timer=setInterval(updateTime,500);
+    updateTime();
+  }
+  function stopTimer(){ if(state.timer)clearInterval(state.timer); }
+  function updateTime(){
+    if(!state.startedAt) return;
+    const s=Math.floor((Date.now()-state.startedAt)/1000);
+    timeEl.textContent =
+      String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  }
+  function reset(){
+    state.moves=0; movesEl.textContent='0';
+    stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
+    build();
+  }
+  function loadImage(url){
+    state.imgURL=url; markSelected(url); reset(); shuffle(true);
+  }
+  function build(){
+    const n=state.size;
+    grid.style.gridTemplateColumns='repeat('+n+',1fr)';
+    grid.style.gridTemplateRows='repeat('+n+',1fr)';
+    grid.innerHTML='';
+    for(let i=0;i<n*n;i++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      grid.appendChild(cell);
+      cell.appendChild(makeTile(i));
+      cell.addEventListener('dragover',e=>e.preventDefault());
+      cell.addEventListener('drop',e=>{
+        e.preventDefault();
+        const d=grid.querySelector('.tile.dragging');
+        if(d) swap(d.parentElement,cell);
+      });
+    }
+  }
+  function makeTile(i){
+    const n=state.size;
+    const t=document.createElement('div');
+    t.className='tile'; t.draggable=true; t.dataset.correct=i;
+    const x=(n===1?0:(i%n)/(n-1)*100);
+    const y=(n===1?0:Math.floor(i/n)/(n-1)*100);
+    t.style.backgroundImage='url('+state.imgURL+')';
+    t.style.backgroundSize=(n*100)+'% '+(n*100)+'%';
+    t.style.backgroundPosition=x+'% '+y+'%';
+    t.ondragstart=()=>t.classList.add('dragging');
+    t.ondragend = ()=>t.classList.remove('dragging');
+    return t;
+  }
+  function swap(a,b){
+    if(a===b) return;
+    const ta=a.firstElementChild, tb=b.firstElementChild;
+    if(!ta||!tb) return;
+    a.appendChild(tb); b.appendChild(ta);
+    state.moves++; if(state.moves===1) startTimer();
+    movesEl.textContent=state.moves;
+    check();
+  }
+  function shuffle(start){
+    const n=state.size;
+    const order=Array.from({length:n*n},(_,i)=>i);
+    do{
+      for(let i=order.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [order[i],order[j]]=[order[j],order[i]];
+      }
+    }while(order.every((v,i)=>v===i));
+    [...grid.children].forEach((c,i)=>{
+      c.innerHTML=''; c.appendChild(makeTile(order[i]));
+    });
+    state.moves=0; movesEl.textContent='0';
+    stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
+    if(start) startTimer();
+  }
+  function check(){
+    const ok=[...grid.children].every((c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i);
+    if(ok){ stopTimer(); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
+  }
+
+  renderThumbs();
   loadImage(state.imgURL);
 </script>
 </body>
