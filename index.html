@@ -55,17 +55,18 @@
 <div id="toast" class="toast">🎉 Puzzle Completed!</div>
 
 <script>
+  // Only these 10 PNGs will be available
   const IMAGES = [
-    "images/dog-01.jpg",
-    "images/dog-02.jpg",
-    "images/dog-03.jpg",
-    "images/dog-04.jpg",
-    "images/dog-05.jpg",
-    "images/dog-06.jpg",
-    "images/dog-07.jpg",
-    "images/dog-08.jpg",
-    "images/dog-09.jpg",
-    "images/dog-10.jpg"
+    "images/dog-01.png",
+    "images/dog-02.png",
+    "images/dog-03.png",
+    "images/dog-04.png",
+    "images/dog-05.png",
+    "images/dog-06.png",
+    "images/dog-07.png",
+    "images/dog-08.png",
+    "images/dog-09.png",
+    "images/dog-10.png"
   ];
 
   const thumbsBox=document.getElementById('thumbs');
@@ -90,19 +91,22 @@
     });
   }
   function markSelected(url){
-    [...thumbsBox.querySelectorAll('.thumb')].forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
+    [...thumbsBox.querySelectorAll('.thumb')]
+      .forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
   }
+
   gridSel.onchange=()=>{state.size=parseInt(gridSel.value);build();shuffle();};
   shuffleBtn.onclick=()=>shuffle(true);
-  resetBtn.onclick=()=>reset();
+  resetBtn.
+    onclick=()=>reset();
 
   function startTimer(){
     state.startedAt=Date.now();
-    if(state.timer)clearInterval(state.timer);
+    if(state.timer) clearInterval(state.timer);
     state.timer=setInterval(updateTime,500);
     updateTime();
   }
-  function stopTimer(){ if(state.timer)clearInterval(state.timer); }
+  function stopTimer(){ if(state.timer) clearInterval(state.timer); }
   function updateTime(){
     if(!state.startedAt) return;
     const s=Math.floor((Date.now()-state.startedAt)/1000);
@@ -117,6 +121,7 @@
   function loadImage(url){
     state.imgURL=url; markSelected(url); reset(); shuffle(true);
   }
+
   function build(){
     const n=state.size;
     grid.style.gridTemplateColumns='repeat('+n+',1fr)';
@@ -135,6 +140,7 @@
       });
     }
   }
+
   function makeTile(i){
     const n=state.size;
     const t=document.createElement('div');
@@ -148,6 +154,7 @@
     t.ondragend = ()=>t.classList.remove('dragging');
     return t;
   }
+
   function swap(a,b){
     if(a===b) return;
     const ta=a.firstElementChild, tb=b.firstElementChild;
@@ -157,6 +164,7 @@
     movesEl.textContent=state.moves;
     check();
   }
+
   function shuffle(start){
     const n=state.size;
     const order=Array.from({length:n*n},(_,i)=>i);
@@ -165,7 +173,7 @@
         const j=Math.floor(Math.random()*(i+1));
         [order[i],order[j]]=[order[j],order[i]];
       }
-    }while(order.every((v,i)=>v===i));
+    }while(order.every((v,i)=>v===i)); // avoid already-solved
     [...grid.children].forEach((c,i)=>{
       c.innerHTML=''; c.appendChild(makeTile(order[i]));
     });
@@ -173,11 +181,19 @@
     stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
     if(start) startTimer();
   }
+
   function check(){
-    const ok=[...grid.children].every((c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i);
-    if(ok){ stopTimer(); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
+    const ok=[...grid.children].every(
+      (c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i
+    );
+    if(ok){
+      stopTimer();
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),2000);
+    }
   }
 
+  // boot
   renderThumbs();
   loadImage(state.imgURL);
 </script>
