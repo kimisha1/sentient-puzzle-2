@@ -1,29 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sentient Puzzle</title>
   <style>
-    body { margin:0; font-family:sans-serif; background:#f7f7fb; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f7f7fb; color:#111; }
     header { background:#fff; padding:14px 18px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
     h1 { font-size:18px; margin:0; }
     .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    select,button { padding:6px 10px; border-radius:6px; border:1px solid #ccc; }
+    select,button { padding:6px 10px; border-radius:6px; border:1px solid #cfd6e4; background:#fff; }
     button.primary { background:#2c7be5; color:#fff; border-color:#2c7be5; cursor:pointer; }
     main { display:grid; place-items:center; padding:20px; }
     .wrap { display:grid; gap:20px; }
-    @media(min-width:900px){ .wrap{ grid-template-columns:auto 220px; } }
-    .board { position:relative; width:min(520px,90vw); aspect-ratio:1/1; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.1); padding:6px; }
+    @media(min-width:900px){ .wrap{ grid-template-columns:auto 260px; } }
+
+    .board { position:relative; width:min(560px,90vw); aspect-ratio:1/1; background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.08); padding:6px; }
     .grid { position:absolute; inset:6px; display:grid; width:calc(100% - 12px); height:calc(100% - 12px); gap:6px; }
-    .cell { background:#eef1f6; border-radius:6px; overflow:hidden; }
+    .cell { background:#eef1f6; border-radius:10px; overflow:hidden; }
     .tile { width:100%; height:100%; background-size:100% 100%; }
-    .thumbs { display:flex; flex-wrap:wrap; gap:6px; }
-    .thumb { width:60px; height:60px; object-fit:cover; border-radius:6px; border:2px solid transparent; cursor:pointer; }
+
+    .thumbs { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px; }
+    .thumb { width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:10px; border:2px solid transparent; cursor:pointer; background:#fff; }
     .thumb.selected { border-color:#2c7be5; }
+
     .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#111; color:#fff; padding:10px 16px; border-radius:999px; opacity:0; transition:.25s; }
     .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-    .warn { font-size:12px; color:#a00; }
+
+    .warn { font-size:12px; color:#a00; margin-top:8px; line-height:1.6; }
+    .stats { margin-top:10px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -48,189 +53,210 @@
     <aside>
       <div><b>Choose Image</b></div>
       <div id="thumbs" class="thumbs"></div>
-      <div class="warn" id="warn"></div>
-      <div style="margin-top:8px;">Moves: <b id="moves">0</b> | Time: <b id="time">00:00</b></div>
+      <div id="warn" class="warn"></div>
+      <div class="stats">Moves: <b id="moves">0</b> | Time: <b id="time">00:00</b></div>
     </aside>
   </div>
 </main>
-<div id="toast" class="toast">🎉 Puzzle Completed!</div>
+<div id="toast" class="toast">🎉 پازل تکمیل شد!</div>
 
 <script>
-  // Filenames (base names only)
-  const BASES = [
-    "2025-08-24 22.06.36","2025-08-24 22.07.33","2025-08-24 22.07.40","2025-08-24 22.07.45","2025-08-24 22.07.49",
-    "2025-08-24 22.08.14","2025-08-24 22.08.09","2025-08-24 22.08.05","2025-08-24 22.08.00","2025-08-24 22.07.56"
-  ];
-  // Try these paths/extensions automatically
-  const PATHS = ["image/", ""];
-  const EXTS  = ["png","PNG","jpg","jpeg","JPG","JPEG","webp","WEBP"];
+/* ===== 1) اسامی فایل‌ها (بدون پسوند) ===== */
+const BASES = [
+  "2025-08-24 22.06.36","2025-08-24 22.07.33","2025-08-24 22.07.40",
+  "2025-08-24 22.07.45","2025-08-24 22.07.49","2025-08-24 22.08.14",
+  "2025-08-24 22.08.09","2025-08-24 22.08.05","2025-08-24 22.08.00",
+  "2025-08-24 22.07.56"
+];
+/* مسیرها و پسوندهایی که تست می‌کنیم */
+const PATHS = ["image/"]; // فقط همین پوشه
+const EXTS  = ["jpg","jpeg","png","webp","JPG","JPEG","PNG","WEBP"];
 
-  const thumbsBox=document.getElementById('thumbs');
-  const grid=document.getElementById('grid');
-  const gridSel=document.getElementById('gridSize');
-  const movesEl=document.getElementById('moves');
-  const timeEl=document.getElementById('time');
-  const toast=document.getElementById('toast');
-  const shuffleBtn=document.getElementById('shuffleBtn');
-  const resetBtn=document.getElementById('resetBtn');
-  const warnEl=document.getElementById('warn');
+/* ===== 2) عناصر DOM ===== */
+const thumbsBox = document.getElementById('thumbs');
+const grid      = document.getElementById('grid');
+const gridSel   = document.getElementById('gridSize');
+const movesEl   = document.getElementById('moves');
+const timeEl    = document.getElementById('time');
+const toast     = document.getElementById('toast');
+const shuffleBtn= document.getElementById('shuffleBtn');
+const resetBtn  = document.getElementById('resetBtn');
+const warnEl    = document.getElementById('warn');
 
-  let state={size:4,imgURL:null,moves:0,startedAt:null,timer:null};
-  let IMAGES=[]; // resolved URLs
+/* ===== 3) وضعیت ===== */
+let state = { size:4, imgURL:null, moves:0, startedAt:null, timer:null };
+let IMAGES = []; // آدرس‌های نهایی پیدا شده
 
-  function imgExists(url){
-    return new Promise(res=>{
-      const im=new Image();
-      im.onload = ()=>res(true);
-      im.onerror= ()=>res(false);
-      im.src=url+(url.includes('?')?'&':'?')+'v='+(Date.now()%1e7); // bust cache
+/* ===== 4) کمکی‌های بارگذاری ===== */
+function imgExists(url){
+  return new Promise(res=>{
+    const im=new Image();
+    im.onload  = ()=>res(true);
+    im.onerror = ()=>res(false);
+    im.src = encodeURI(url) + (url.includes('?')?'&':'?') + 'v=' + (Date.now()%1e7); // جلوگیری از کش
+  });
+}
+
+async function resolveOne(base){
+  for(const p of PATHS){
+    for(const e of EXTS){
+      const url = p + encodeURIComponent(base) + "." + e;
+      if (await imgExists(url)) return url;
+    }
+  }
+  return null;
+}
+
+async function resolveAll(){
+  const out=[], missing=[];
+  for(const b of BASES){
+    const u = await resolveOne(b);
+    if(u) out.push(u); else missing.push(b);
+  }
+  if(missing.length){
+    warnEl.textContent = "یافت نشد: " + missing.join(" , ");
+    console.warn("Missing images:", missing);
+  } else {
+    warnEl.textContent = "";
+  }
+  return out;
+}
+
+/* ===== 5) UI ===== */
+function renderThumbs(){
+  thumbsBox.innerHTML = '';
+  IMAGES.forEach((src,i)=>{
+    const img = document.createElement('img');
+    img.className = 'thumb' + (i===0?' selected':'');
+    img.src = encodeURI(src);
+    img.dataset.url = src;
+    img.title = decodeURIComponent(src.split('/').pop());
+    img.onclick = ()=>loadImage(src);
+    thumbsBox.appendChild(img);
+  });
+}
+function markSelected(url){
+  [...thumbsBox.querySelectorAll('.thumb')].forEach(t=>{
+    t.classList.toggle('selected', t.dataset.url===url);
+  });
+}
+
+/* ===== 6) تایمر/آمار ===== */
+function startTimer(){
+  state.startedAt = Date.now();
+  if(state.timer) clearInterval(state.timer);
+  state.timer = setInterval(updateTime, 500);
+  updateTime();
+}
+function stopTimer(){ if(state.timer) clearInterval(state.timer); }
+function updateTime(){
+  const s = state.startedAt ? Math.floor((Date.now()-state.startedAt)/1000) : 0;
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const r = String(s%60).padStart(2,'0');
+  timeEl.textContent = ${m}:${r};
+}
+function resetStats(){
+  state.moves = 0; movesEl.textContent = '0';
+  stopTimer(); state.startedAt = null; updateTime();
+}
+
+/* ===== 7) ساخت گرید و تایل ===== */
+function build(){
+  const n = state.size;
+  grid.style.gridTemplateColumns = repeat(${n},1fr);
+  grid.style.gridTemplateRows    = repeat(${n},1fr);
+  grid.innerHTML = '';
+  for(let i=0;i<n*n;i++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    grid.appendChild(cell);
+    cell.appendChild(makeTile(i));
+    cell.addEventListener('dragover', e=>e.preventDefault());
+    cell.addEventListener('drop', e=>{
+      e.preventDefault();
+      const d = grid.querySelector('.tile.dragging');
+      if(d) swap(d.parentElement, cell);
     });
   }
+}
 
-  async function resolveOne(base){
-    for(const p of PATHS){
-      for(const e of EXTS){
-        const url = p+base+"."+e;
-        if(await imgExists(url)) return url;
-      }
+function makeTile(i){
+  const n = state.size;
+  const t = document.createElement('div');
+  t.className = 'tile'; t.draggable = true; t.dataset.correct = i;
+  const x = (n===1?0 : (i%n)/(n-1)*100);
+  const y = (n===1?0 : Math.floor(i/n)/(n-1)*100);
+  t.style.backgroundImage = 'url("' + encodeURI(state.imgURL) + '")';
+  t.style.backgroundSize  = (n*100)+'% '+(n*100)+'%';
+  t.style.backgroundPosition = x+'% '+y+'%';
+  t.ondragstart = ()=>t.classList.add('dragging');
+  t.ondragend   = ()=>t.classList.remove('dragging');
+  return t;
+}
+
+function swap(a,b){
+  if(a===b) return;
+  const ta=a.firstElementChild, tb=b.firstElementChild;
+  if(!ta||!tb) return;
+  a.appendChild(tb); b.appendChild(ta);
+  if(state.moves===0) startTimer();
+  state.moves++; movesEl.textContent = state.moves;
+  check();
+}
+
+function shuffle(start=false){
+  const n = state.size;
+  const order = Array.from({length:n*n},(_,i)=>i);
+  do{
+    for(let i=order.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [order[i],order[j]] = [order[j],order[i]];
     }
-    return null;
-  }
+  } while(order.every((v,i)=>v===i)); // مطمئن شو حالت حل‌شده نیست
 
-  async function resolveAll(){
-    const out=[];
-    const missing=[];
-    for(const b of BASES){
-      const u = await resolveOne(b);
-      if(u) out.push(u); else missing.push(b);
-    }
-    if(missing.length){
-      warnEl.textContent = "Missing: "+missing.join(", ");
-      console.warn("Missing images:", missing);
-    }
-    return out;
-  }
+  [...grid.children].forEach((c,i)=>{
+    c.innerHTML=''; c.appendChild(makeTile(order[i]));
+  });
+  resetStats();
+  if(start) startTimer();
+}
 
-  function renderThumbs(){
-    thumbsBox.innerHTML='';
-    IMAGES.forEach((src,i)=>{
-      const img=document.createElement('img');
-      img.className='thumb'+(i===0?' selected':'');
-      img.src=src; img.dataset.url=src; img.title='Puzzle '+(i+1);
-      img.onclick=()=>loadImage(src);
-      thumbsBox.appendChild(img);
-    });
+function check(){
+  const ok = [...grid.children].every(
+    (c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i
+  );
+  if(ok){
+    stopTimer();
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 1800);
   }
+}
+  /* ===== 8) کنترل‌ها ===== */
+document.getElementById('gridSize').addEventListener('change', e=>{
+  state.size = parseInt(e.target.value,10);
+  build(); shuffle();
+});
+document.getElementById('shuffleBtn').addEventListener('click', ()=>shuffle(true));
+document.getElementById('resetBtn').addEventListener('click', ()=>{ resetStats(); build(); });
 
-  function markSelected(url){
-    [...thumbsBox.querySelectorAll('.thumb')]
-      .forEach(t=>t.classList.toggle('selected',t.dataset.url===url));
-  }
+function loadImage(url){
+  state.imgURL = url;
+  markSelected(url);
+  resetStats();
+  build(); shuffle(true);
+}
 
-  gridSel.onchange=()=>{state.size=parseInt(gridSel.value);build();shuffle();};
-  shuffleBtn.onclick=()=>shuffle(true);
-  resetBtn.onclick=()=>reset();
-
-  function startTimer(){
-    state.startedAt=Date.now();
-    if(state.timer)clearInterval(state.timer);
-    state.timer=setInterval(updateTime,500);
-    updateTime();
+/* ===== 9) راه‌اندازی ===== */
+(async ()=>{
+  IMAGES = await resolveAll();
+  if(!IMAGES.length){
+    warnEl.textContent = "هیچ تصویری پیدا نشد. مطمئن شو فایل‌ها در مسیر «/image/» هستند.";
+    return;
   }
-  function stopTimer(){ if(state.timer)clearInterval(state.timer); }
-  function updateTime(){
-    if(!state.startedAt) return;
-    const s=Math.floor((Date.now()-state.startedAt)/1000);
-    timeEl.textContent =
-      String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-  }
-  function reset(){
-    state.moves=0; movesEl.textContent='0';
-    stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
-    build();
-  }
-  function loadImage(url){
-    state.imgURL=url; markSelected(url); reset(); shuffle(true);
-  }
-
-  function build(){
-    const n=state.size;
-    grid.style.gridTemplateColumns='repeat('+n+',1fr)';
-    grid.style.gridTemplateRows='repeat('+n+',1fr)';
-    grid.innerHTML='';
-    for(let i=0;i<n*n;i++){
-      const cell=document.createElement('div');
-      cell.className='cell';
-      grid.appendChild(cell);
-      cell.appendChild(makeTile(i));
-      cell.addEventListener('dragover',e=>e.preventDefault());
-      cell.addEventListener('drop',e=>{
-        e.preventDefault();
-        const d=grid.querySelector('.tile.dragging');
-        if(d) swap(d.parentElement,cell);
-      });
-    }
-  }
-
-  function makeTile(i){
-    const n=state.size;
-    const t=document.createElement('div');
-    t.className='tile'; t.draggable=true; t.dataset.correct=i;
-    const x=(n===1?0:(i%n)/(n-1)*100);
-    const y=(n===1?0:Math.floor(i/n)/(n-1)*100);
-    t.style.backgroundImage='url('+state.imgURL+')';
-    t.style.backgroundSize=(n*100)+'% '+(n*100)+'%';
-    t.style.backgroundPosition=x+'% '+y+'%';
-    t.ondragstart=()=>t.classList.add('dragging');
-    t.ondragend = ()=>t.classList.remove('dragging');
-    return t;
-  }
-
-  function swap(a,b){
-    if(a===b) return;
-    const ta=a.firstElementChild, tb=b.firstElementChild;
-    if(!ta||!tb) return;
-    a.appendChild(tb); b.appendChild(ta);
-    state.moves++; if(state.moves===1) startTimer();
-    movesEl.textContent=state.moves;
-    check();
-  }
-
-  function shuffle(start){
-    const n=state.size;
-    const order=Array.from({length:n*n},(_,i)=>i);
-    do{
-      for(let i=order.length-1;i>0;i--){
-        const j=Math.floor(Math.random()*(i+1));
-        [order[i],order[j]]=[order[j],order[i]];
-      }
-    }while(order.every((v,i)=>v===i));
-    [...grid.children].forEach((c,i)=>{
-      c.innerHTML=''; c.appendChild(makeTile(order[i]));
-    });
-    state.moves=0; movesEl.textContent='0';
-    stopTimer(); state.startedAt=null; timeEl.textContent='00:00';
-    if(start) startTimer();
-  }
-
-  function check(){
-    const ok=[...grid.children].every(
-      (c,i)=>parseInt(c.firstElementChild.dataset.correct,10)===i
-    );
-    if(ok){ stopTimer(); toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2000); }
-  }
-
-  // boot
-  (async ()=>{
-    IMAGES = await resolveAll();
-    if(!IMAGES.length){
-      warnEl.textContent = "No images found. Put files in ./images or ./ with names like angry-dog.png (or .jpg/.jpeg/.webp).";
-      return;
-    }
-    state.imgURL = IMAGES[0];
-    renderThumbs();
-    loadImage(state.imgURL);
-  })();
+  state.imgURL = IMAGES[0];
+  renderThumbs();
+  loadImage(state.imgURL);
+})();
 </script>
 </body>
 </html>
